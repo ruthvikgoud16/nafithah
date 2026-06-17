@@ -37,7 +37,7 @@ contract InvoiceMarketplace {
     error OnlyAdminAllowed();
     error DueDateNotPassed();
     error InvalidStatus();
-    
+    error GracePeriodActive();
 
     constructor(
         address _receivableNFT,
@@ -96,13 +96,15 @@ contract InvoiceMarketplace {
         if (block.timestamp <= receivable.dueDate) {
             revert DueDateNotPassed();
         }
-        
+        if (block.timestamp <= receivable.dueDate + 1 days) {
+            revert GracePeriodActive();
+        }
 
         // Set status in NFT to Defaulted
         receivableNFT.markDefaulted(tokenId);
 
         // Apply on-chain penalty of 20 points to buyer's credit score
-        creditRegistry.penalizeDefault(receivable.supplier);
+        creditRegistry.penalizeDefault(receivable.buyerAddress);
     }
 
     /// @notice Discount rate in basis points (bps) for a supplier, derived

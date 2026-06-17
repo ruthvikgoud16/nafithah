@@ -294,4 +294,72 @@ describe("Tokenized Invoice Financing Platform", function () {
     });
   });
 
+  describe("Hardening Validations", function () {
+    it("Should reject default triggers before the 1-day grace period passes", async function () {
+      const faceValue = ethers.parseUnits("1000", 6);
+      const block = await ethers.provider.getBlock("latest");
+      const shortDueDate = block.timestamp + 10;
+      
+      await receivableNFT.connect(supplier).mintReceivable(
+        buyer.address,
+        "Acme Corp",
+        "INV-GRACE-01",
+        faceValue,
+        shortDueDate,
+        "QmHash"
+      );
+
+      await mockUSDC.connect(lender).approve(await marketplace.getAddress(), faceValue);
+      await marketplace.connect(lender).fundReceivable(0); // token ID is 0
+
+      // Advance time past due date but before grace period
+      await ethers.provider.send("evm_increaseTime", [15]);
+      await ethers.provider.send("evm_mine");
+
+      await expect(
+        marketplace.markDefault(0)
+      ).to.be.revertedWithCustomError(marketplace, "GracePeriodActive");
+    });
+
+    it("Should penalize buyer instead of supplier and execute default after grace period passes", async function () {
+      const faceValue = ethers.parseUnits("1000", 6);
+      const block = await ethers.provider.getBlock("latest");
+      const shortDueDate = block.timestamp + 10;
+      
+      await receivableNFT.connect(supplier).mintReceivable(
+        buyer.address,
+        "Acme Corp",
+        "INV-GRACE-02",
+        faceValue,
+        shortDueDate,
+        "QmHash"
+      );
+
+      await mockUSDC.connect(lender).approve(await marketplace.getAddress(), faceValue);
+      await marketplace.connect(lender).fundReceivable(0); // token ID is 0
+
+      // Setup buyer score
+      await creditRegistry.connect(oracle).setScore(buyer.address, 80);
+      // Setup supplier score
+      await creditRegistry.connect(oracle).setScore(supplier.address, 80);
+
+      // Advance time past due date + 1 day grace period
+      await ethers.provider.send("evm_increaseTime", [86400 + 15]);
+      await ethers.provider.send("evm_mine");
+
+      await expect(marketplace.markDefault(0))
+        .to.emit(receivableNFT, "StatusUpdated")
+        .withArgs(0, 1, 3); // status Funded (1) -> Defaulted (3)
+
+      // Buyer score penalized (-20 points from 80 -> 60)
+      const [buyerScore] = await creditRegistry.getScore(buyer.address);
+      expect(buyerScore).to.equal(60);
+
+      // Supplier score remained untouched (should still be 80)
+      const [supplierScore] = await creditRegistry.getScore(supplier.address);
+      expect(supplierScore).to.equal(80);
+    });
   });
+});
+
+const anyUint = () => true;

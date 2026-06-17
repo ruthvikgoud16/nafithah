@@ -38,8 +38,8 @@ contract LetterOfCredit {
     error DueDateNotPassed();
     error DueDateAlreadyPassed();
     error TransferFailed();
-    
-    
+    error InvalidShipmentProof();
+    error GracePeriodActive();
 
     constructor(address _mAED, address _creditRegistry) {
         mAED = IERC20(_mAED);
@@ -111,7 +111,7 @@ contract LetterOfCredit {
         if (lc.status != LCStatus.Accepted) revert InvalidStatus();
         if (msg.sender != lc.exporter) revert NotExporter();
         if (block.timestamp > lc.dueDate) revert DueDateAlreadyPassed();
-        
+        if (bytes(shipmentProof).length == 0) revert InvalidShipmentProof();
 
         lc.status = LCStatus.Shipped;
         lc.shipmentProof = shipmentProof;
@@ -142,7 +142,16 @@ contract LetterOfCredit {
         if (lc.importer == address(0)) revert LCDoesNotExist();
         if (lc.status == LCStatus.Released || lc.status == LCStatus.Defaulted) revert InvalidStatus();
         if (block.timestamp <= lc.dueDate) revert DueDateNotPassed();
-         else if (originalStatus == LCStatus.Funded || originalStatus == LCStatus.Accepted) {
+        if (block.timestamp <= lc.dueDate + 1 days) revert GracePeriodActive();
+
+        LCStatus originalStatus = lc.status;
+        lc.status = LCStatus.Defaulted;
+
+        if (originalStatus == LCStatus.Created) {
+            // Importer failed to fund the LC
+            creditRegistry.penalizeDefault(lc.importer);
+            emit LCDefaulted(lcId, lc.importer);
+        } else if (originalStatus == LCStatus.Funded || originalStatus == LCStatus.Accepted) {
             // Exporter failed to ship goods on time. Importer is refunded.
             creditRegistry.penalizeDefault(lc.exporter);
             emit LCDefaulted(lcId, lc.exporter);

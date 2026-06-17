@@ -401,7 +401,9 @@ export default function Dashboard() {
       fetchLiveCacheData();
     } catch (e: any) {
       console.error(e);
-      if (true) {
+      if (e.message && (e.message.includes("DuplicateInvoice") || e.data?.message?.includes("DuplicateInvoice"))) {
+        alert("Invoice already tokenized. Duplicate invoices are not permitted on Nafithah.");
+      } else {
         alert(`Minting transaction failed: ${e.message || e}`);
       }
     }

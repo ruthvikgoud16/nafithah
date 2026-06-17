@@ -122,4 +122,89 @@ describe("LetterOfCredit Contract", function () {
     });
   });
 
+  describe("Default Processing & Grace Period", function () {
+    it("Should reject default triggers before the 1-day grace period passes", async function () {
+      const block = await ethers.provider.getBlock("latest");
+      const shortDueDate = block.timestamp + 10;
+      await lcContract.connect(importer).createLC(exporter.address, amount, shortDueDate, "QmHash");
+
+      // Wait past due date but before grace period
+      await ethers.provider.send("evm_increaseTime", [15]);
+      await ethers.provider.send("evm_mine");
+
+      await expect(
+        lcContract.markDefault(0)
+      ).to.be.revertedWithCustomError(lcContract, "GracePeriodActive");
+    });
+
+    it("Should penalize importer if they fail to fund after grace period passes", async function () {
+      const block = await ethers.provider.getBlock("latest");
+      const shortDueDate = block.timestamp + 10;
+      await lcContract.connect(importer).createLC(exporter.address, amount, shortDueDate, "QmHash");
+
+      // Wait past due date + 1 day grace period
+      await ethers.provider.send("evm_increaseTime", [86400 + 15]);
+      await ethers.provider.send("evm_mine");
+
+      await expect(lcContract.markDefault(0))
+        .to.emit(lcContract, "LCDefaulted")
+        .withArgs(0, importer.address);
+
+      const [score] = await creditRegistry.getScore(importer.address);
+      expect(score).to.equal(50); // penalized from base 70 to 50
+    });
+
+    it("Should refund importer and penalize exporter if exporter fails to ship on time after grace period", async function () {
+      const block = await ethers.provider.getBlock("latest");
+      const shortDueDate = block.timestamp + 10;
+      await lcContract.connect(importer).createLC(exporter.address, amount, shortDueDate, "QmHash");
+      await lcContract.connect(importer).fundLC(0);
+      await lcContract.connect(exporter).acceptLC(0);
+
+      // Wait past due date + 1 day grace period
+      await ethers.provider.send("evm_increaseTime", [86400 + 15]);
+      await ethers.provider.send("evm_mine");
+
+      const balanceBefore = await mockAED.balanceOf(importer.address);
+
+      await expect(lcContract.markDefault(0))
+        .to.emit(lcContract, "LCDefaulted")
+        .withArgs(0, exporter.address);
+
+      // Exporter penalized
+      const [score] = await creditRegistry.getScore(exporter.address);
+      expect(score).to.equal(50);
+
+      // Importer refunded
+      const balanceAfter = await mockAED.balanceOf(importer.address);
+      expect(balanceAfter - balanceBefore).to.equal(amount);
+    });
+
+    it("Should release funds to exporter and penalize importer if importer fails to release funds after shipment post grace period", async function () {
+      const block = await ethers.provider.getBlock("latest");
+      const shortDueDate = block.timestamp + 10;
+      await lcContract.connect(importer).createLC(exporter.address, amount, shortDueDate, "QmHash");
+      await lcContract.connect(importer).fundLC(0);
+      await lcContract.connect(exporter).acceptLC(0);
+      await lcContract.connect(exporter).submitShipmentProof(0, "QmProof");
+
+      // Wait past due date + 1 day grace period
+      await ethers.provider.send("evm_increaseTime", [86400 + 15]);
+      await ethers.provider.send("evm_mine");
+
+      const balanceBefore = await mockAED.balanceOf(exporter.address);
+
+      await expect(lcContract.markDefault(0))
+        .to.emit(lcContract, "LCDefaulted")
+        .withArgs(0, importer.address);
+
+      // Importer penalized
+      const [score] = await creditRegistry.getScore(importer.address);
+      expect(score).to.equal(50);
+
+      // Exporter paid
+      const balanceAfter = await mockAED.balanceOf(exporter.address);
+      expect(balanceAfter - balanceBefore).to.equal(amount);
+    });
   });
+});

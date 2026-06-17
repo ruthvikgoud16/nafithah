@@ -41,9 +41,9 @@ contract ReceivableNFT is ERC721, AccessControl {
 
     error NotController();
     error ReceivableDoesNotExist();
-    
+    error DuplicateInvoice();
 
-    
+    mapping(bytes32 => bool) private _usedInvoiceHashes;
 
     constructor() ERC721("Receivable NFT", "rINV") {
         _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
@@ -59,7 +59,11 @@ contract ReceivableNFT is ERC721, AccessControl {
         uint256 dueDate,
         string calldata invoiceIPFSHash
     ) external returns (uint256 tokenId) {
-        bytes32 invoiceHash = bytes32(0);
+        bytes32 invoiceHash = sha256(abi.encodePacked(msg.sender, buyerAddress, invoiceNumber, amount, dueDate));
+        if (_usedInvoiceHashes[invoiceHash]) {
+            revert DuplicateInvoice();
+        }
+        _usedInvoiceHashes[invoiceHash] = true;
 
         tokenId = _nextTokenId;
         _nextTokenId++;
