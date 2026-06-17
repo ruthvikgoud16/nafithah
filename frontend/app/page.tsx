@@ -6,7 +6,7 @@ import { ConnectButton } from "@rainbow-me/rainbowkit";
 import { ethers } from "ethers";
 import { 
   Upload, FileText, Database, Shield, TrendingUp, DollarSign, Users, RefreshCw, Sparkles, 
-  CheckCircle2, ChevronRight, AlertTriangle, ArrowRight, ShieldCheck, MapPin, Landmark, Layers, Calendar, Clock, BarChart3, AlertCircle
+  CheckCircle2, ChevronRight, AlertTriangle, ArrowRight, ShieldCheck, MapPin, Landmark, Layers, Calendar, Clock, BarChart3, AlertCircle, Ship
 } from "lucide-react";
 
 // Import ABI JSONs
@@ -62,6 +62,7 @@ export default function Dashboard() {
   // Demo Mode settings
   const [isDemoMode, setIsDemoMode] = useState(true); // Default to true for easy demo access
   const [demoStep, setDemoStep] = useState(1);
+  const [selectedVisualizerStage, setSelectedVisualizerStage] = useState<number | null>(null);
   const [demoInvoices, setDemoInvoices] = useState<Invoice[]>([]);
   const [demoLcs, setDemoLcs] = useState<LCData[]>([]);
   
@@ -118,6 +119,12 @@ export default function Dashboard() {
   const [faucetLoading, setFaucetLoading] = useState(false);
   const [faucetCurrency, setFaucetCurrency] = useState<"mAED" | "mUSDC">("mAED");
   const [actionLoading, setActionLoading] = useState<Record<string, boolean>>({});
+  const [toast, setToast] = useState<{ message: string; type: "success" | "error" | "info" } | null>(null);
+
+  const showToast = (message: string, type: "success" | "error" | "info" = "success") => {
+    setToast({ message, type });
+    setTimeout(() => setToast(null), 5000);
+  };
 
   // Resolve hydration differences
   useEffect(() => {
@@ -126,6 +133,11 @@ export default function Dashboard() {
     initializeDemoData();
     fetchLiveCacheData();
   }, []);
+
+  // Sync selectedVisualizerStage with parent timeline step
+  useEffect(() => {
+    setSelectedVisualizerStage(null);
+  }, [demoStep, invoices, lcs, creditProfile, ocrData]);
 
   const getTimelineStep = () => {
     if (!isDemoMode) {
@@ -402,9 +414,9 @@ export default function Dashboard() {
     } catch (e: any) {
       console.error(e);
       if (e.message && (e.message.includes("DuplicateInvoice") || e.data?.message?.includes("DuplicateInvoice"))) {
-        alert("Invoice already tokenized. Duplicate invoices are not permitted on Nafithah.");
+        showToast("Invoice already tokenized. Duplicate invoices are not permitted on Nafithah.", "error");
       } else {
-        alert(`Minting transaction failed: ${e.message || e}`);
+        showToast(`Minting transaction failed: ${e.message || e}`, "error");
       }
     }
     setIsMinting(false);
@@ -488,7 +500,7 @@ export default function Dashboard() {
 
       fetchLiveCacheData();
     } catch (e: any) {
-      alert(`LC creation failed: ${e.message || e}`);
+      showToast(`LC creation failed: ${e.message || e}`, "error");
     }
     setIsLcCreating(false);
   };
@@ -501,7 +513,7 @@ export default function Dashboard() {
         setDemoLcs(prev => 
           prev.map(lc => lc.id === lcId ? { ...lc, status: "Funded" } : lc)
         );
-        alert("mAED Collateral Locked. Letter of Credit funded successfully!");
+        showToast("mAED Collateral Locked. Letter of Credit funded successfully!", "success");
         setActionLoading(prev => ({ ...prev, [`fund-${lcId}`]: false }));
       }, 1200);
       return;
@@ -543,10 +555,10 @@ export default function Dashboard() {
         body: formData
       });
 
-      alert(`LC funded successfully! Tx: ${tx.hash}`);
+      showToast(`LC funded successfully! Tx: ${tx.hash}`, "success");
       fetchLiveCacheData();
     } catch (e: any) {
-      alert(`Funding failed: ${e.message || e}`);
+      showToast(`Funding failed: ${e.message || e}`, "error");
     }
     setActionLoading(prev => ({ ...prev, [`fund-${lcId}`]: false }));
   };
@@ -559,7 +571,7 @@ export default function Dashboard() {
         setDemoLcs(prev => 
           prev.map(lc => lc.id === lcId ? { ...lc, status: "Accepted" } : lc)
         );
-        alert("Letter of Credit accepted by Exporter!");
+        showToast("Letter of Credit accepted by Exporter!", "success");
         setActionLoading(prev => ({ ...prev, [`accept-${lcId}`]: false }));
       }, 1000);
       return;
@@ -587,10 +599,10 @@ export default function Dashboard() {
         body: formData
       });
 
-      alert(`LC accepted! Tx: ${tx.hash}`);
+      showToast(`LC accepted! Tx: ${tx.hash}`, "success");
       fetchLiveCacheData();
     } catch (e: any) {
-      alert(`Accept failed: ${e.message || e}`);
+      showToast(`Accept failed: ${e.message || e}`, "error");
     }
     setActionLoading(prev => ({ ...prev, [`accept-${lcId}`]: false }));
   };
@@ -605,7 +617,7 @@ export default function Dashboard() {
         setDemoLcs(prev => 
           prev.map(lc => lc.id === lcId ? { ...lc, status: "Shipped", shipmentProof: proofHash } : lc)
         );
-        alert("Shipment proof uploaded. Goods exported from Mumbai to Jebel Ali, Dubai.");
+        showToast("Shipment proof uploaded. Goods exported from Mumbai to Jebel Ali, Dubai.", "success");
         setActionLoading(prev => ({ ...prev, [`ship-${lcId}`]: false }));
       }, 1500);
       return;
@@ -634,10 +646,10 @@ export default function Dashboard() {
         body: formData
       });
 
-      alert(`Shipment proof submitted successfully! Tx: ${tx.hash}`);
+      showToast(`Shipment proof submitted successfully! Tx: ${tx.hash}`, "success");
       fetchLiveCacheData();
     } catch (e: any) {
-      alert(`Shipment submission failed: ${e.message || e}`);
+      showToast(`Shipment submission failed: ${e.message || e}`, "error");
     }
     setActionLoading(prev => ({ ...prev, [`ship-${lcId}`]: false }));
   };
@@ -650,7 +662,7 @@ export default function Dashboard() {
         setDemoLcs(prev => 
           prev.map(lc => lc.id === lcId ? { ...lc, status: "Released" } : lc)
         );
-        alert("Locked mAED funds released to Bharat Components (Mumbai Exporter) successfully!");
+        showToast("Locked mAED funds released to Bharat Components (Mumbai Exporter) successfully!", "success");
         setActionLoading(prev => ({ ...prev, [`release-${lcId}`]: false }));
       }, 1500);
       return;
@@ -678,10 +690,10 @@ export default function Dashboard() {
         body: formData
       });
 
-      alert(`Funds released successfully! Tx: ${tx.hash}`);
+      showToast(`Funds released successfully! Tx: ${tx.hash}`, "success");
       fetchLiveCacheData();
     } catch (e: any) {
-      alert(`Release failed: ${e.message || e}`);
+      showToast(`Release failed: ${e.message || e}`, "error");
     }
     setActionLoading(prev => ({ ...prev, [`release-${lcId}`]: false }));
   };
@@ -694,7 +706,7 @@ export default function Dashboard() {
         setDemoLcs(prev => 
           prev.map(lc => lc.id === lcId ? { ...lc, status: "Defaulted" } : lc)
         );
-        alert("EVM Time check: Exporter failed to ship by due date. Default processed. Importer collateral refunded, exporter credit score penalized by 20 points.");
+        showToast("EVM Time check: Exporter failed to ship. Default processed, collateral refunded.", "info");
         setActionLoading(prev => ({ ...prev, [`default-${lcId}`]: false }));
       }, 1500);
       return;
@@ -722,10 +734,10 @@ export default function Dashboard() {
         body: formData
       });
 
-      alert(`Default registered and penalty executed on-chain! Tx: ${tx.hash}`);
+      showToast(`Default registered and penalty executed on-chain! Tx: ${tx.hash}`, "info");
       fetchLiveCacheData();
     } catch (e: any) {
-      alert(`Default trigger failed: ${e.message || e}`);
+      showToast(`Default trigger failed: ${e.message || e}`, "error");
     }
     setActionLoading(prev => ({ ...prev, [`default-${lcId}`]: false }));
   };
@@ -735,7 +747,7 @@ export default function Dashboard() {
     setFaucetLoading(true);
     if (isDemoMode) {
       setTimeout(() => {
-        alert(`Fauceted 250,000 ${faucetCurrency} successfully! Mock tokens added.`);
+        showToast(`Fauceted 250,000 ${faucetCurrency} successfully! Mock tokens added.`, "success");
         setFaucetLoading(false);
       }, 1000);
       return;
@@ -755,9 +767,9 @@ export default function Dashboard() {
       const tx = await tokenContract.mint(await signer.getAddress(), amountUnits);
       await tx.wait();
 
-      alert(`Test tokens claimed! Tx: ${tx.hash}`);
+      showToast(`Test tokens claimed! Tx: ${tx.hash}`, "success");
     } catch (e: any) {
-      alert(`Faucet failed: ${e.message || e}`);
+      showToast(`Faucet failed: ${e.message || e}`, "error");
     }
     setFaucetLoading(false);
   };
@@ -801,7 +813,7 @@ export default function Dashboard() {
     } else if (demoStep === 10) {
       setActiveTab("dashboard");
       setDemoStep(1);
-      alert("Demo Script Completed Successfully in under 3 minutes!");
+      showToast("Demo Script Completed Successfully in under 3 minutes!", "success");
     }
   };
 
@@ -1003,6 +1015,262 @@ export default function Dashboard() {
                 </div>
               </section>
 
+              {/* CEPA Trade Corridor Visualizer */}
+              <section className="bg-slate-900/40 border border-slate-900 rounded-2xl p-6 space-y-6">
+                <style dangerouslySetInnerHTML={{__html: `
+                  @keyframes moveCargo {
+                    0% { offset-distance: 0%; opacity: 1; }
+                    90% { offset-distance: 100%; opacity: 1; }
+                    100% { offset-distance: 100%; opacity: 0; }
+                  }
+                  @keyframes moveTokens {
+                    0% { offset-distance: 0%; opacity: 1; }
+                    90% { offset-distance: 100%; opacity: 1; }
+                    100% { offset-distance: 100%; opacity: 0; }
+                  }
+                  @keyframes dash {
+                    to {
+                      stroke-dashoffset: -170;
+                    }
+                  }
+                  .animate-cargo {
+                    animation: moveCargo 8s linear infinite;
+                  }
+                  .animate-tokens {
+                    animation: moveTokens 3s linear infinite;
+                  }
+                `}} />
+                
+                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                  <div>
+                    <div className="flex items-center space-x-2">
+                      <span className="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider flex items-center gap-1">
+                        <Sparkles className="w-3 h-3" /> Live Corridor Tracker
+                      </span>
+                    </div>
+                    <h3 className="text-lg font-bold text-slate-100 mt-1">
+                      CEPA Trade Corridor Visualizer <span className="text-slate-500 font-normal">(Mumbai ↔ Dubai)</span>
+                    </h3>
+                    <p className="text-xs text-slate-400">
+                      Interactive on-chain lifecycle of cross-border trade invoices and Letters of Credit.
+                    </p>
+                  </div>
+                  
+                  {selectedVisualizerStage !== null && (
+                    <div className="flex items-center space-x-2 bg-slate-950 border border-slate-900 rounded-lg p-1 text-[10px] font-bold">
+                      <button 
+                        onClick={() => setSelectedVisualizerStage(null)}
+                        className="bg-violet-600 text-white px-2.5 py-1 rounded transition hover:bg-violet-500"
+                      >
+                        Sync with Demo Stepper
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                {/* Main Visual Map & Path */}
+                <div className="relative bg-slate-950 rounded-xl border border-slate-900 p-6 flex flex-col md:flex-row gap-6 overflow-hidden min-h-[300px]">
+                  {/* Grid Background Effect */}
+                  <div className="absolute inset-0 bg-[linear-gradient(to_right,#0f172a_1px,transparent_1px),linear-gradient(to_bottom,#0f172a_1px,transparent_1px)] bg-[size:24px_24px] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_50%,#000_70%,transparent_100%)] opacity-30 pointer-events-none" />
+
+                  {/* Left Side: The Interactive Map */}
+                  <div className="flex-1 relative min-h-[220px] flex items-center justify-center">
+                    <svg className="w-full max-w-[500px] h-[220px]" viewBox="0 0 500 220" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      {/* Connection Trade Lane Curved Path */}
+                      <path 
+                        id="tradePath"
+                        d="M 380,130 Q 250,170 120,80" 
+                        stroke="url(#pathGradient)" 
+                        strokeWidth="3" 
+                        strokeDasharray="6,6"
+                        className="opacity-70"
+                      />
+                      
+                      {/* Animated flow path */}
+                      <path 
+                        d="M 380,130 Q 250,170 120,80" 
+                        stroke="url(#glowGradient)" 
+                        strokeWidth="3"
+                        strokeLinecap="round"
+                        className="opacity-90 animate-[dash_4s_linear_infinite]"
+                        style={{
+                          strokeDasharray: "20, 150",
+                          strokeDashoffset: 0
+                        }}
+                      />
+
+                      {/* Gradients definition */}
+                      <defs>
+                        <linearGradient id="pathGradient" x1="120" y1="80" x2="380" y2="130" gradientUnits="userSpaceOnUse">
+                          <stop offset="0%" stopColor="#4f46e5" />
+                          <stop offset="50%" stopColor="#10b981" />
+                          <stop offset="100%" stopColor="#6366f1" />
+                        </linearGradient>
+                        <linearGradient id="glowGradient" x1="120" y1="80" x2="380" y2="130" gradientUnits="userSpaceOnUse">
+                          <stop offset="0%" stopColor="#818cf8" />
+                          <stop offset="50%" stopColor="#34d399" />
+                          <stop offset="100%" stopColor="#a78bfa" />
+                        </linearGradient>
+                      </defs>
+
+                      {/* Dubai Node (Port of Jebel Ali) */}
+                      <g transform="translate(120, 80)">
+                        <circle r="16" className="fill-slate-900 stroke-violet-500 stroke-2" />
+                        <circle r="24" className="fill-none stroke-violet-500/30 stroke-1 animate-ping" />
+                        <Landmark className="w-4 h-4 text-violet-400 -translate-x-2 -translate-y-2 pointer-events-none" />
+                        <text x="-50" y="-20" className="fill-slate-300 font-bold text-[9px] pointer-events-none">Dubai Hub</text>
+                        <text x="-50" y="-10" className="fill-slate-500 text-[7px] pointer-events-none">Jebel Ali Port</text>
+                      </g>
+
+                      {/* Mumbai Node (Nhava Sheva Port) */}
+                      <g transform="translate(380, 130)">
+                        <circle r="16" className="fill-slate-900 stroke-emerald-500 stroke-2" />
+                        <circle r="24" className="fill-none stroke-emerald-500/30 stroke-1 animate-ping" />
+                        <Layers className="w-4 h-4 text-emerald-400 -translate-x-2 -translate-y-2 pointer-events-none" />
+                        <text x="25" y="-10" className="fill-slate-300 font-bold text-[9px] pointer-events-none">Mumbai Hub</text>
+                        <text x="25" y="0" className="fill-slate-500 text-[7px] pointer-events-none">Nhava Sheva Port</text>
+                      </g>
+
+                      {/* Animated Tokens/Icons along the path based on stage */}
+                      {/* Stage 1: Document in Mumbai */}
+                      {(selectedVisualizerStage !== null ? selectedVisualizerStage : getTimelineStep()) === 1 && (
+                        <g transform="translate(372, 95)" className="animate-bounce">
+                          <rect width="16" height="20" rx="2" className="fill-slate-900 stroke-violet-400 stroke-2" />
+                          <FileText className="w-3 h-3 text-violet-400 translate-x-0.5 translate-y-1" />
+                        </g>
+                      )}
+
+                      {/* Stage 2: Oracle scoring score badge */}
+                      {(selectedVisualizerStage !== null ? selectedVisualizerStage : getTimelineStep()) === 2 && (
+                        <g transform="translate(362, 95)" className="animate-pulse">
+                          <rect width="36" height="16" rx="4" className="fill-slate-900 stroke-emerald-400 stroke-2" />
+                          <text x="6" y="11" className="fill-emerald-400 font-bold font-mono text-[9px]">CR:89</text>
+                        </g>
+                      )}
+
+                      {/* Stage 3: Invoice NFT in Mumbai */}
+                      {(selectedVisualizerStage !== null ? selectedVisualizerStage : getTimelineStep()) === 3 && (
+                        <g transform="translate(370, 95)" className="animate-bounce">
+                          <circle r="10" className="fill-slate-900 stroke-indigo-400 stroke-2" />
+                          <Sparkles className="w-3.5 h-3.5 text-indigo-400 -translate-x-1.5 -translate-y-1.5" />
+                        </g>
+                      )}
+
+                      {/* Stage 4: Letter of Credit locked in Dubai (Escrow locks mAED) */}
+                      {(selectedVisualizerStage !== null ? selectedVisualizerStage : getTimelineStep()) === 4 && (
+                        <g transform="translate(98, 115)" className="animate-[pulse_1.5s_ease-in-out_infinite]">
+                          <rect width="45" height="16" rx="4" className="fill-slate-900 stroke-violet-400 stroke-2" />
+                          <text x="4" y="11" className="fill-violet-400 font-bold font-mono text-[8px]">mAED Vault</text>
+                        </g>
+                      )}
+
+                      {/* Stage 5: Container ship moving across Arabian Sea */}
+                      {(selectedVisualizerStage !== null ? selectedVisualizerStage : getTimelineStep()) === 5 && (
+                        <g className="animate-cargo" style={{
+                          offsetPath: "path('M 380,130 Q 250,170 120,80')",
+                          offsetRotate: "auto"
+                        }}>
+                          <circle r="12" className="fill-slate-900 stroke-indigo-400 stroke-2 animate-pulse" />
+                          <Ship className="w-3.5 h-3.5 text-indigo-400 -translate-x-1.5 -translate-y-1.5" />
+                        </g>
+                      )}
+
+                      {/* Stage 6: Settlement released (Tokens flying back) */}
+                      {(selectedVisualizerStage !== null ? selectedVisualizerStage : getTimelineStep()) === 6 && (
+                        <g className="animate-tokens" style={{
+                          offsetPath: "path('M 120,80 Q 250,170 380,130')",
+                          offsetRotate: "auto"
+                        }}>
+                          <circle r="10" className="fill-slate-900 stroke-emerald-400 stroke-2" />
+                          <DollarSign className="w-3 h-3 text-emerald-400 -translate-x-1 -translate-y-1.5" />
+                        </g>
+                      )}
+                    </svg>
+                  </div>
+
+                  {/* Right Side: Detail Panel */}
+                  <div className="w-full md:w-[240px] bg-slate-900/60 rounded-lg border border-slate-900 p-4 flex flex-col justify-between shrink-0 space-y-4">
+                    <div>
+                      <div className="flex items-center space-x-1.5">
+                        <span className={`w-2 h-2 rounded-full ${
+                          (selectedVisualizerStage !== null ? selectedVisualizerStage : getTimelineStep()) === 6 ? "bg-emerald-500" : "bg-violet-500 animate-pulse"
+                        }`} />
+                        <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">
+                          Stage {(selectedVisualizerStage !== null ? selectedVisualizerStage : getTimelineStep())}: {
+                            (selectedVisualizerStage !== null ? selectedVisualizerStage : getTimelineStep()) === 1 ? "Invoice Creation" :
+                            (selectedVisualizerStage !== null ? selectedVisualizerStage : getTimelineStep()) === 2 ? "AI Credit Audit" :
+                            (selectedVisualizerStage !== null ? selectedVisualizerStage : getTimelineStep()) === 3 ? "NFT Tokenization" :
+                            (selectedVisualizerStage !== null ? selectedVisualizerStage : getTimelineStep()) === 4 ? "Escrow Funding" :
+                            (selectedVisualizerStage !== null ? selectedVisualizerStage : getTimelineStep()) === 5 ? "Cargo Logistics" :
+                            "Payout Released"
+                          }
+                        </span>
+                      </div>
+                      
+                      <h4 className="text-xs font-bold text-slate-200 mt-2">
+                        {
+                          (selectedVisualizerStage !== null ? selectedVisualizerStage : getTimelineStep()) === 1 ? "SME Exporter Uploads Cargo Invoice" :
+                          (selectedVisualizerStage !== null ? selectedVisualizerStage : getTimelineStep()) === 2 ? "Credit Scoring Oracle Execution" :
+                          (selectedVisualizerStage !== null ? selectedVisualizerStage : getTimelineStep()) === 3 ? "Solidity Receivable NFT Minted" :
+                          (selectedVisualizerStage !== null ? selectedVisualizerStage : getTimelineStep()) === 4 ? "Dubai Importer Deploys Letter of Credit" :
+                          (selectedVisualizerStage !== null ? selectedVisualizerStage : getTimelineStep()) === 5 ? "Ocean Freight Cargo Sails" :
+                          "Atomic Settlement Executed"
+                        }
+                      </h4>
+                      
+                      <p className="text-[11px] text-slate-400 mt-2 leading-relaxed">
+                        {
+                          (selectedVisualizerStage !== null ? selectedVisualizerStage : getTimelineStep()) === 1 ? "Exporters upload trade PDFs. Tesseract OCR structures variables (amount, buyer name, due date) instantly." :
+                          (selectedVisualizerStage !== null ? selectedVisualizerStage : getTimelineStep()) === 2 ? "FastAPI ML calculates supplier risk rating (89). Authorised oracle wallet registers score on-chain in CreditRegistry." :
+                          (selectedVisualizerStage !== null ? selectedVisualizerStage : getTimelineStep()) === 3 ? "ERC-721 NFT mints on Polygon. A unique double-factoring prevention hash is written to the ledger." :
+                          (selectedVisualizerStage !== null ? selectedVisualizerStage : getTimelineStep()) === 4 ? "Importer deposits mAED Dirham stablecoins in LetterOfCredit escrow, securing trade collateral." :
+                          (selectedVisualizerStage !== null ? selectedVisualizerStage : getTimelineStep()) === 5 ? "Exporter ships container from Nhava Sheva. Bill of Lading hash is pinned to IPFS, waiting for arrival confirmation." :
+                          "Jebel Ali arrival triggers shipping release logic. mAED collateral splits: exporter receives funds; lender spread executes."
+                        }
+                      </p>
+                    </div>
+
+                    <div className="border-t border-slate-900 pt-3 flex items-center justify-between text-[9px] text-slate-500 font-mono">
+                      <span>Active Contract:</span>
+                      <span className="text-violet-400">
+                        {
+                          (selectedVisualizerStage !== null ? selectedVisualizerStage : getTimelineStep()) === 1 ? "FastAPI OCR API" :
+                          (selectedVisualizerStage !== null ? selectedVisualizerStage : getTimelineStep()) === 2 ? "CreditRegistry.sol" :
+                          (selectedVisualizerStage !== null ? selectedVisualizerStage : getTimelineStep()) === 3 ? "ReceivableNFT.sol" :
+                          (selectedVisualizerStage !== null ? selectedVisualizerStage : getTimelineStep()) === 4 ? "InvoiceMarketplace.sol" :
+                          (selectedVisualizerStage !== null ? selectedVisualizerStage : getTimelineStep()) === 5 ? "LetterOfCredit.sol" :
+                          "RepaymentEscrow.sol"
+                        }
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Interactive Control Row */}
+                <div className="grid grid-cols-3 md:grid-cols-6 gap-2">
+                  {[
+                    { label: "1. Upload & OCR", id: 1 },
+                    { label: "2. ML Scoring", id: 2 },
+                    { label: "3. Mint NFT", id: 3 },
+                    { label: "4. Lock Escrow", id: 4 },
+                    { label: "5. Verify Cargo", id: 5 },
+                    { label: "6. Settle Pay", id: 6 },
+                  ].map((stage) => (
+                    <button
+                      key={stage.id}
+                      onClick={() => setSelectedVisualizerStage(stage.id)}
+                      className={`px-2 py-2 rounded-xl text-[10px] font-bold border transition-all truncate text-center ${
+                        (selectedVisualizerStage !== null ? selectedVisualizerStage : getTimelineStep()) === stage.id
+                          ? "bg-slate-900 border-violet-500 text-violet-400 shadow shadow-violet-500/10"
+                          : "bg-slate-900/10 border-slate-900 text-slate-400 hover:text-slate-200 hover:border-slate-800"
+                      }`}
+                    >
+                      {stage.label}
+                    </button>
+                  ))}
+                </div>
+              </section>
+
               {/* Unified Trade Corridor Timeline Stepper */}
               <section className="bg-slate-900/20 border border-slate-900 rounded-2xl p-6 space-y-4">
                 <div className="flex justify-between items-center">
@@ -1168,35 +1436,60 @@ export default function Dashboard() {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-900">
-                      {getInvoicesList().map((inv) => (
-                        <tr key={inv.token_id} className="hover:bg-slate-900/10">
-                          <td className="py-3 font-mono font-bold text-slate-300">#{inv.token_id}</td>
-                          <td className="font-semibold">{inv.supplier.split(" (")[0]}</td>
-                          <td className="text-slate-300">{inv.buyer_name.split(" (")[0]}</td>
-                          <td className="font-bold">AED {inv.amount.toLocaleString()}</td>
-                          <td className="text-slate-400 font-semibold">{inv.currency}</td>
-                          <td className="text-slate-400">{inv.due_date}</td>
-                          <td>
-                            <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                              inv.status === "Pending" ? "bg-yellow-500/10 text-yellow-500 border border-yellow-500/20" :
-                              inv.status === "Funded" ? "bg-indigo-500/10 text-indigo-400 border border-indigo-500/20" :
-                              inv.status === "Repaid" ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20" :
-                              "bg-red-500/10 text-red-500 border border-red-500/20"
-                            }`}>
-                              {inv.status}
-                            </span>
-                          </td>
-                          <td>
-                            <span className={`font-bold ${
-                              (inv.credit_score || 0) >= 85 ? "text-emerald-400" :
-                              (inv.credit_score || 0) >= 70 ? "text-yellow-500" :
-                              "text-red-400"
-                            }`}>
-                              {inv.credit_score || "N/A"}
-                            </span>
+                      {loadingInvoices ? (
+                        Array.from({ length: 3 }).map((_, i) => (
+                          <tr key={i} className="animate-pulse">
+                            <td className="py-3"><div className="h-4 bg-slate-900 rounded w-12"></div></td>
+                            <td><div className="h-4 bg-slate-900 rounded w-28"></div></td>
+                            <td><div className="h-4 bg-slate-900 rounded w-24"></div></td>
+                            <td><div className="h-4 bg-slate-900 rounded w-20"></div></td>
+                            <td><div className="h-4 bg-slate-900 rounded w-10"></div></td>
+                            <td><div className="h-4 bg-slate-900 rounded w-16"></div></td>
+                            <td><div className="h-6 bg-slate-900 rounded-full w-14"></div></td>
+                            <td><div className="h-4 bg-slate-900 rounded w-8"></div></td>
+                          </tr>
+                        ))
+                      ) : getInvoicesList().length === 0 ? (
+                        <tr>
+                          <td colSpan={8} className="py-8 text-center text-slate-500">
+                            <div className="flex flex-col items-center justify-center space-y-2 py-4">
+                              <AlertCircle className="w-8 h-8 text-slate-700" />
+                              <p className="text-xs font-semibold text-slate-400">No active invoices found on-chain</p>
+                              <p className="text-[10px] text-slate-500">Toggle Demo Mode or upload an invoice in the SME Portal to get started.</p>
+                            </div>
                           </td>
                         </tr>
-                      ))}
+                      ) : (
+                        getInvoicesList().map((inv) => (
+                          <tr key={inv.token_id} className="hover:bg-slate-900/10">
+                            <td className="py-3 font-mono font-bold text-slate-300">#{inv.token_id}</td>
+                            <td className="font-semibold">{inv.supplier.split(" (")[0]}</td>
+                            <td className="text-slate-300">{inv.buyer_name.split(" (")[0]}</td>
+                            <td className="font-bold">AED {inv.amount.toLocaleString()}</td>
+                            <td className="text-slate-400 font-semibold">{inv.currency}</td>
+                            <td className="text-slate-400">{inv.due_date}</td>
+                            <td>
+                              <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                                inv.status === "Pending" ? "bg-yellow-500/10 text-yellow-500 border border-yellow-500/20" :
+                                inv.status === "Funded" ? "bg-indigo-500/10 text-indigo-400 border border-indigo-500/20" :
+                                inv.status === "Repaid" ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20" :
+                                "bg-red-500/10 text-red-500 border border-red-500/20"
+                              }`}>
+                                {inv.status}
+                              </span>
+                            </td>
+                            <td>
+                              <span className={`font-bold ${
+                                (inv.credit_score || 0) >= 85 ? "text-emerald-400" :
+                                (inv.credit_score || 0) >= 70 ? "text-yellow-500" :
+                                "text-red-400"
+                              }`}>
+                                {inv.credit_score || "N/A"}
+                              </span>
+                            </td>
+                          </tr>
+                        ))
+                      )}
                     </tbody>
                   </table>
                 </div>
@@ -1451,98 +1744,124 @@ export default function Dashboard() {
                     <h3 className="text-sm font-bold text-slate-200 uppercase tracking-wide">Active Letters of Credit</h3>
                     
                     <div className="space-y-4">
-                      {getLcsList().map((lc) => (
-                        <div key={lc.id} className="bg-slate-950 p-5 rounded-xl border border-slate-900 space-y-4">
-                          <div className="flex justify-between items-start">
-                            <div>
-                              <div className="flex items-center space-x-2">
-                                <span className="font-mono font-bold text-slate-200">LC #{lc.id}</span>
-                                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                                  lc.status === "Created" ? "bg-yellow-500/10 text-yellow-500 border border-yellow-500/20" :
-                                  lc.status === "Funded" ? "bg-blue-500/10 text-blue-400 border border-blue-500/20" :
-                                  lc.status === "Accepted" ? "bg-indigo-500/10 text-indigo-400 border border-indigo-500/20" :
-                                  lc.status === "Shipped" ? "bg-purple-500/10 text-purple-400 border border-purple-500/20" :
-                                  lc.status === "Released" ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20" :
-                                  "bg-red-500/10 text-red-500 border border-red-500/20"
-                                }`}>
-                                  {lc.status}
-                                </span>
+                      {loadingLcs ? (
+                        Array.from({ length: 2 }).map((_, i) => (
+                          <div key={i} className="bg-slate-950 p-5 rounded-xl border border-slate-900 space-y-4 animate-pulse">
+                            <div className="flex justify-between items-start">
+                              <div className="space-y-2">
+                                <div className="h-4 bg-slate-900 rounded w-20"></div>
+                                <div className="h-3 bg-slate-900 rounded w-48"></div>
                               </div>
-                              <p className="text-[10px] text-slate-400 mt-1">Importer: {lc.importer} ↔ Exporter: {lc.exporter}</p>
-                            </div>
-                            <div className="text-right">
-                              <p className="text-sm font-bold text-slate-200">AED {lc.amount.toLocaleString()}</p>
-                              <p className="text-[9px] text-slate-500 flex items-center justify-end mt-1"><Calendar className="w-3 h-3 mr-1" /> Due: {lc.dueDate}</p>
-                            </div>
-                          </div>
-
-                          {/* Progress Bar of LC Milestones */}
-                          <div className="w-full flex items-center justify-between text-[10px] font-semibold text-slate-500">
-                            <span className={lc.status !== "Created" ? "text-violet-400" : ""}>Created</span>
-                            <ChevronRight className="w-3 h-3" />
-                            <span className={["Funded", "Accepted", "Shipped", "Released"].includes(lc.status) ? "text-violet-400" : ""}>Funded</span>
-                            <ChevronRight className="w-3 h-3" />
-                            <span className={["Accepted", "Shipped", "Released"].includes(lc.status) ? "text-violet-400" : ""}>Accepted</span>
-                            <ChevronRight className="w-3 h-3" />
-                            <span className={["Shipped", "Released"].includes(lc.status) ? "text-violet-400" : ""}>Shipped</span>
-                            <ChevronRight className="w-3 h-3" />
-                            <span className={lc.status === "Released" ? "text-emerald-400 font-bold" : ""}>Settled</span>
-                          </div>
-
-                          {/* Control Actions depending on Status */}
-                          <div className="flex space-x-3 pt-2">
-                            {lc.status === "Created" && (
-                              <button
-                                onClick={() => fundLC(lc.id, lc.amount)}
-                                disabled={actionLoading[`fund-${lc.id}`]}
-                                className="flex-1 bg-violet-600 hover:bg-violet-500 text-white font-bold py-2 px-3 rounded-lg text-xs transition"
-                              >
-                                {actionLoading[`fund-${lc.id}`] ? "Locking mAED Collateral..." : "Lock Collateral (Fund LC)"}
-                              </button>
-                            )}
-
-                            {lc.status === "Funded" && (
-                              <button
-                                onClick={() => acceptLC(lc.id)}
-                                disabled={actionLoading[`accept-${lc.id}`]}
-                                className="flex-1 bg-violet-600 hover:bg-violet-500 text-white font-bold py-2 px-3 rounded-lg text-xs transition"
-                              >
-                                {actionLoading[`accept-${lc.id}`] ? "Accepting Terms..." : "Accept LC terms (Exporter)"}
-                              </button>
-                            )}
-
-                            {lc.status === "Accepted" && (
-                              <button
-                                onClick={() => submitShipmentProof(lc.id)}
-                                disabled={actionLoading[`ship-${lc.id}`]}
-                                className="flex-1 bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-2 px-3 rounded-lg text-xs transition"
-                              >
-                                {actionLoading[`ship-${lc.id}`] ? "Uploading Bill of Lading..." : "Upload Shipment Proof & Cargo Export"}
-                              </button>
-                            )}
-
-                            {lc.status === "Shipped" && (
-                              <div className="flex-1 flex space-x-3">
-                                <button
-                                  onClick={() => releaseLCFunds(lc.id)}
-                                  disabled={actionLoading[`release-${lc.id}`]}
-                                  className="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2 px-3 rounded-lg text-xs transition"
-                                >
-                                  {actionLoading[`release-${lc.id}`] ? "Releasing locked mAED..." : "Confirm Delivery & Release Funds"}
-                                </button>
-                                
-                                <button
-                                  onClick={() => triggerLcDefault(lc.id)}
-                                  disabled={actionLoading[`default-${lc.id}`]}
-                                  className="bg-red-900/20 hover:bg-red-900/40 text-red-400 font-bold py-2 px-3 rounded-lg text-xs border border-red-500/20 transition"
-                                >
-                                  {actionLoading[`default-${lc.id}`] ? "Executing default..." : "Trigger Default"}
-                                </button>
+                              <div className="text-right space-y-2">
+                                <div className="h-4 bg-slate-900 rounded w-24"></div>
+                                <div className="h-3 bg-slate-900 rounded w-16"></div>
                               </div>
-                            )}
+                            </div>
+                            <div className="h-2 bg-slate-900 rounded w-full"></div>
+                          </div>
+                        ))
+                      ) : getLcsList().length === 0 ? (
+                        <div className="bg-slate-950 p-8 rounded-xl border border-slate-900 text-center text-slate-500">
+                          <div className="flex flex-col items-center justify-center space-y-2 py-4">
+                            <AlertCircle className="w-8 h-8 text-slate-700" />
+                            <p className="text-xs font-semibold text-slate-400">No active Letters of Credit escrows active</p>
+                            <p className="text-[10px] text-slate-500 mt-1">Create one from an uploaded invoice in the SME Portal to start the collateral escrow flow.</p>
                           </div>
                         </div>
-                      ))}
+                      ) : (
+                        getLcsList().map((lc) => (
+                          <div key={lc.id} className="bg-slate-950 p-5 rounded-xl border border-slate-900 space-y-4">
+                            <div className="flex justify-between items-start">
+                              <div>
+                                <div className="flex items-center space-x-2">
+                                  <span className="font-mono font-bold text-slate-200">LC #{lc.id}</span>
+                                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                                    lc.status === "Created" ? "bg-yellow-500/10 text-yellow-500 border border-yellow-500/20" :
+                                    lc.status === "Funded" ? "bg-blue-500/10 text-blue-400 border border-blue-500/20" :
+                                    lc.status === "Accepted" ? "bg-indigo-500/10 text-indigo-400 border border-indigo-500/20" :
+                                    lc.status === "Shipped" ? "bg-purple-500/10 text-purple-400 border border-purple-500/20" :
+                                    lc.status === "Released" ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20" :
+                                    "bg-red-500/10 text-red-500 border border-red-500/20"
+                                  }`}>
+                                    {lc.status}
+                                  </span>
+                                </div>
+                                <p className="text-[10px] text-slate-400 mt-1">Importer: {lc.importer} ↔ Exporter: {lc.exporter}</p>
+                              </div>
+                              <div className="text-right">
+                                <p className="text-sm font-bold text-slate-200">AED {lc.amount.toLocaleString()}</p>
+                                <p className="text-[9px] text-slate-500 flex items-center justify-end mt-1"><Calendar className="w-3 h-3 mr-1" /> Due: {lc.dueDate}</p>
+                              </div>
+                            </div>
+
+                            {/* Progress Bar of LC Milestones */}
+                            <div className="w-full flex items-center justify-between text-[10px] font-semibold text-slate-500">
+                              <span className={lc.status !== "Created" ? "text-violet-400" : ""}>Created</span>
+                              <ChevronRight className="w-3 h-3" />
+                              <span className={["Funded", "Accepted", "Shipped", "Released"].includes(lc.status) ? "text-violet-400" : ""}>Funded</span>
+                              <ChevronRight className="w-3 h-3" />
+                              <span className={["Accepted", "Shipped", "Released"].includes(lc.status) ? "text-violet-400" : ""}>Accepted</span>
+                              <ChevronRight className="w-3 h-3" />
+                              <span className={["Shipped", "Released"].includes(lc.status) ? "text-violet-400" : ""}>Shipped</span>
+                              <ChevronRight className="w-3 h-3" />
+                              <span className={lc.status === "Released" ? "text-emerald-400 font-bold" : ""}>Settled</span>
+                            </div>
+
+                            {/* Control Actions depending on Status */}
+                            <div className="flex space-x-3 pt-2">
+                              {lc.status === "Created" && (
+                                <button
+                                  onClick={() => fundLC(lc.id, lc.amount)}
+                                  disabled={actionLoading[`fund-${lc.id}`]}
+                                  className="flex-1 bg-violet-600 hover:bg-violet-500 text-white font-bold py-2 px-3 rounded-lg text-xs transition relative overflow-hidden"
+                                >
+                                  {actionLoading[`fund-${lc.id}`] ? "Locking mAED Collateral..." : "Lock Collateral (Fund LC)"}
+                                </button>
+                              )}
+
+                              {lc.status === "Funded" && (
+                                <button
+                                  onClick={() => acceptLC(lc.id)}
+                                  disabled={actionLoading[`accept-${lc.id}`]}
+                                  className="flex-1 bg-violet-600 hover:bg-violet-500 text-white font-bold py-2 px-3 rounded-lg text-xs transition"
+                                >
+                                  {actionLoading[`accept-${lc.id}`] ? "Accepting Terms..." : "Accept LC terms (Exporter)"}
+                                </button>
+                              )}
+
+                              {lc.status === "Accepted" && (
+                                <button
+                                  onClick={() => submitShipmentProof(lc.id)}
+                                  disabled={actionLoading[`ship-${lc.id}`]}
+                                  className="flex-1 bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-2 px-3 rounded-lg text-xs transition"
+                                >
+                                  {actionLoading[`ship-${lc.id}`] ? "Uploading Bill of Lading..." : "Upload Shipment Proof & Cargo Export"}
+                                </button>
+                              )}
+
+                              {lc.status === "Shipped" && (
+                                <div className="flex-1 flex space-x-3">
+                                  <button
+                                    onClick={() => releaseLCFunds(lc.id)}
+                                    disabled={actionLoading[`release-${lc.id}`]}
+                                    className="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2 px-3 rounded-lg text-xs transition"
+                                  >
+                                    {actionLoading[`release-${lc.id}`] ? "Releasing locked mAED..." : "Confirm Delivery & Release Funds"}
+                                  </button>
+                                  
+                                  <button
+                                    onClick={() => triggerLcDefault(lc.id)}
+                                    disabled={actionLoading[`default-${lc.id}`]}
+                                    className="bg-red-900/20 hover:bg-red-900/40 text-red-400 font-bold py-2 px-3 rounded-lg text-xs border border-red-500/20 transition"
+                                  >
+                                    {actionLoading[`default-${lc.id}`] ? "Executing default..." : "Trigger Default"}
+                                  </button>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        ))
+                      )}
                     </div>
                   </div>
                 </div>
@@ -1747,7 +2066,7 @@ export default function Dashboard() {
                                 setDemoInvoices(prev => 
                                   prev.map(x => x.token_id === inv.token_id ? { ...x, status: "Repaid" } : x)
                                 );
-                                alert("Repayment successfully settled! Capital and spread payout splits routed.");
+                                showToast("Repayment successfully settled! Capital and spread payout splits routed.", "success");
                                 setActionLoading(prev => ({ ...prev, [`repay-${inv.token_id}`]: false }));
                               }, 1200);
                               return;
@@ -1779,10 +2098,10 @@ export default function Dashboard() {
                                 body: formData
                               });
 
-                              alert(`Repayment successful! Tx: ${tx.hash}`);
+                              showToast(`Repayment successful! Tx: ${tx.hash}`, "success");
                               fetchLiveCacheData();
                             } catch (e: any) {
-                              alert(`Repayment failed: ${e.message || e}`);
+                              showToast(`Repayment failed: ${e.message || e}`, "error");
                             }
                             setActionLoading(prev => ({ ...prev, [`repay-${inv.token_id}`]: false }));
                           }}
@@ -1800,7 +2119,7 @@ export default function Dashboard() {
                                 setDemoInvoices(prev => 
                                   prev.map(x => x.token_id === inv.token_id ? { ...x, status: "Defaulted" } : x)
                                 );
-                                alert("Default recorded. On-chain penalty executed: score reduced by 20 points, statistics logged in Risk Registry.");
+                                showToast("Default recorded. On-chain penalty executed: credit score penalized.", "info");
                                 setActionLoading(prev => ({ ...prev, [`default-${inv.token_id}`]: false }));
                               }, 1200);
                               return;
@@ -1823,10 +2142,10 @@ export default function Dashboard() {
                                 body: formData
                               });
 
-                              alert(`Default recorded! Tx: ${tx.hash}`);
+                              showToast(`Default recorded! Tx: ${tx.hash}`, "info");
                               fetchLiveCacheData();
                             } catch (e: any) {
-                              alert(`Default trigger failed: ${e.message || e}`);
+                              showToast(`Default trigger failed: ${e.message || e}`, "error");
                             }
                             setActionLoading(prev => ({ ...prev, [`default-${inv.token_id}`]: false }));
                           }}
@@ -1913,6 +2232,33 @@ export default function Dashboard() {
         </div>
 
       </div>
+
+      {/* Floating Premium Glassmorphic Toast Notifications */}
+      {toast && (
+        <div className="fixed bottom-6 right-6 z-50 animate-bounce bg-slate-900/95 border border-slate-800 backdrop-blur-md px-5 py-3.5 rounded-xl shadow-2xl flex items-center space-x-3 text-xs max-w-sm">
+          {toast.type === "success" && (
+            <div className="p-1.5 bg-emerald-500/10 rounded-full text-emerald-400">
+              <CheckCircle2 className="w-4 h-4" />
+            </div>
+          )}
+          {toast.type === "error" && (
+            <div className="p-1.5 bg-red-500/10 rounded-full text-red-400">
+              <AlertCircle className="w-4 h-4" />
+            </div>
+          )}
+          {toast.type === "info" && (
+            <div className="p-1.5 bg-blue-500/10 rounded-full text-blue-400">
+              <Clock className="w-4 h-4" />
+            </div>
+          )}
+          <div>
+            <p className="text-[10px] uppercase font-bold text-slate-400">
+              {toast.type === "success" ? "Success" : toast.type === "error" ? "Transaction Failed" : "Notification"}
+            </p>
+            <p className="text-slate-100 font-medium mt-0.5 leading-relaxed">{toast.message}</p>
+          </div>
+        </div>
+      )}
 
     </div>
   );

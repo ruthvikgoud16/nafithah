@@ -1,0 +1,38 @@
+# Node.js dependencies
+node_modules/
+**/node_modules/
+
+# Next.js build directories
+.next/
+**/ .next/
+out/
+
+# Hardhat build directories
+artifacts/
+contracts/artifacts/
+cache/
+contracts/cache/
+
+# Local databases and logs
+*.db
+*.log
+backend/data/
+backend/uploads/
+__pycache__/
+*.pyc
+**/__pycache__/
+**/*.pyc
+
+
+# Environment files
+.env
+.env.local
+.env.production
+.env.development
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Internal strategy & planning assets
+internal/
