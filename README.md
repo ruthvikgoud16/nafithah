@@ -7,6 +7,13 @@
 [![Framework: Next.js](https://img.shields.io/badge/Next.js-16.2.9-black)](https://nextjs.org/)
 [![Backend: FastAPI](https://img.shields.io/badge/FastAPI-Python-green)](https://fastapi.tiangolo.com/)
 
+## 🎥 Demo Video
+
+[![Watch Demo Video](https://img.shields.io/badge/Watch-Demo_Video-violet?style=for-the-badge&logo=video)](https://www.image2url.com/r2/default/videos/1781724294554-cca53959-a681-49d1-8a14-e3954bf186a1.mp4)
+
+You can watch the full, end-to-end walkthrough video of the live running application here:
+[Nafithah Live Product Walkthrough](https://www.image2url.com/r2/default/videos/1781724294554-cca53959-a681-49d1-8a14-e3954bf186a1.mp4)
+
 ---
 
 ## ⚡ 60-Second Overview for Judges & Investors
@@ -116,3 +123,43 @@ npm install --legacy-peer-deps
 npm run dev
 ```
 Open `http://localhost:3000` to interact with the dashboard.
+
+---
+
+## 📸 Screenshots
+
+Here are screenshots of the running platform's main interfaces:
+
+### 1. Overview Dashboard & CEPA Visualizer Map
+![Overview Dashboard](screenshots/overview_dashboard.png)
+
+### 2. Settled Escrow State (Step 10 of Demo Wizard)
+![Settled Escrow State](screenshots/step_10_settled.png)
+
+### 3. Reset State (Clean Corridor)
+![Reset State](screenshots/final_reset.png)
+
+---
+
+## 🏗 Architecture
+
+For a deep-dive into the smart contract design, database schema, machine learning engine parameters, and sequence flows, refer to:
+*   [ARCHITECTURE.md](ARCHITECTURE.md)
+
+---
+
+## ⚙ Developer Guide
+
+For detailed API configurations, backend specifications, Hardhat contract testing parameters, and deployment steps, refer to:
+*   [DEVELOPER_GUIDE.md](DEVELOPER_GUIDE.md)
+
+---
+
+## 👨💻 Founder
+
+Nafithah was developed by **B. Ruthvik**.
+
+*   **Email**: [bathiniruthvik370@gmail.com](mailto:bathiniruthvik370@gmail.com)
+*   **GitHub**: [github.com/ruthvikgoud16](https://github.com/ruthvikgoud16)
+*   **LinkedIn**: [linkedin.com/in/ruthvikgoud](https://www.linkedin.com/in/ruthvikgoud)
+*   **Portfolio**: [ruthvik-goud-portfolio.vercel.app](https://ruthvik-goud-portfolio.vercel.app/)
