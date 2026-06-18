@@ -1,6 +1,7 @@
 # Nafithah (نافذة) — Programmable Trade Finance Infrastructure
 ### Tokenizing trade receivables, automating Letters of Credit escrows, and preventing double-factoring fraud natively on Polygon for the UAE-India CEPA corridor.
 
+[![Live Demo](https://img.shields.io/badge/Live-Demo-brightgreen?style=for-the-badge)](https://nafithah.vercel.app)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Polygon: Amoy](https://img.shields.io/badge/Polygon-Amoy_Testnet-violet)](https://polygon.technology/)
 [![Solidity: ^0.8.20](https://img.shields.io/badge/Solidity-^0.8.20-blue.svg)](https://soliditylang.org/)
@@ -23,7 +24,7 @@ Nafithah is a programmable smart-commerce settlement layer built to eliminate th
 ![Overview Dashboard](screenshots/overview_dashboard.png)
 
 ### 🎯 Key Navigation Hubs
-*   🖥️ **[Interactive Demo Wizard](http://localhost:3000)** (Launch application dashboard locally)
+*   🖥️ **[Interactive Demo Wizard](https://nafithah.vercel.app)** (Launch application dashboard on Vercel)
 *   📐 **[System Architecture Guide](ARCHITECTURE.md)** (Deep-dive into smart contract code structures and ML models)
 *   📜 **[Developer Integration Guide](DEVELOPER_GUIDE.md)** (Technical specifications and API contract interfaces)
 *   📜 **[Solidity Smart Contracts](contracts/contracts/)** (Hardhat suite featuring 20 passing integration tests)
@@ -122,7 +123,7 @@ cd frontend
 npm install --legacy-peer-deps
 npm run dev
 ```
-Open `http://localhost:3000` to interact with the dashboard.
+Open `http://localhost:3000` to interact with the dashboard locally, or use the live production app on Vercel: https://nafithah.vercel.app.
 
 ---
 
