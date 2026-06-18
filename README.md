@@ -155,6 +155,18 @@ For detailed API configurations, backend specifications, Hardhat contract testin
 
 ---
 
+## 💡 Recommendations for Production Readiness
+
+Below are key architectural upgrades recommended to prepare the Nafithah protocol for production:
+
+1. **Zero-Knowledge (ZK) Invoice Privacy**: Currently, invoice parameters are stored publicly on-chain and on IPFS. Integrating a ZK-proof system (e.g., using SnarkJS or ZoKrates) will allow suppliers to prove invoice uniqueness and details without exposing sensitive counterparty names, quantities, or prices publicly.
+2. **Decentralized Oracles**: Transition `CreditRegistry.sol` away from a single-address oracle dependency to a decentralized framework using Chainlink Functions or a decentralized oracle network (DON) to securely aggregate off-chain credit metrics.
+3. **Reentrancy Protections**: Standardize contract safety across `InvoiceMarketplace.sol` and `LetterOfCredit.sol` by applying OpenZeppelin's `ReentrancyGuard` modifier to all external ERC-20 transfer interfaces.
+4. **Database & Caching Scalability**: Replace the local SQLite database cache in the FastAPI backend with a production database like PostgreSQL paired with Redis to support high-throughput, concurrent client requests.
+
+---
+
+
 ## 👨💻 Founder
 
 Nafithah was developed by **B. Ruthvik**.
