@@ -250,18 +250,18 @@ export default function Dashboard() {
     setLoadingInvoices(true);
     setLoadingLcs(true);
     try {
-      const resInv = await fetch("http://localhost:8000/invoices");
+      const resInv = await fetch("/api/invoices");
       if (resInv.ok) {
         const data = await resInv.ok ? await resInv.json() : [];
         setInvoices(data);
       }
-      const resLc = await fetch("http://localhost:8000/lcs");
+      const resLc = await fetch("/api/lcs");
       if (resLc.ok) {
         const data = await resLc.json();
         setLcs(data);
       }
     } catch (e) {
-      console.log("Local FastAPI server offline. Running strictly on React Demo state.", e);
+      console.log("Local API server offline. Running strictly on React Demo state.", e);
     }
     setLoadingInvoices(false);
     setLoadingLcs(false);
@@ -405,7 +405,7 @@ export default function Dashboard() {
       formData.append("due_date", dueTimestamp.toString());
       formData.append("ipfs_hash", ocrData.ipfs_hash);
 
-      await fetch("http://localhost:8000/cache-invoice", {
+      await fetch("/api/cache-invoice", {
         method: "POST",
         body: formData
       });
@@ -493,7 +493,7 @@ export default function Dashboard() {
       formData.append("due_date", dueTimestamp.toString());
       formData.append("document_hash", ocrData.ipfs_hash);
 
-      await fetch("http://localhost:8000/cache-lc", {
+      await fetch("/api/cache-lc", {
         method: "POST",
         body: formData
       });
@@ -550,7 +550,7 @@ export default function Dashboard() {
       const formData = new FormData();
       formData.append("lc_id", lcId.toString());
       formData.append("status", "Funded");
-      await fetch("http://localhost:8000/update-lc-status", {
+      await fetch("/api/update-lc-status", {
         method: "POST",
         body: formData
       });
@@ -594,7 +594,7 @@ export default function Dashboard() {
       const formData = new FormData();
       formData.append("lc_id", lcId.toString());
       formData.append("status", "Accepted");
-      await fetch("http://localhost:8000/update-lc-status", {
+      await fetch("/api/update-lc-status", {
         method: "POST",
         body: formData
       });
@@ -641,7 +641,7 @@ export default function Dashboard() {
       formData.append("lc_id", lcId.toString());
       formData.append("status", "Shipped");
       formData.append("shipment_proof", proofHash);
-      await fetch("http://localhost:8000/update-lc-status", {
+      await fetch("/api/update-lc-status", {
         method: "POST",
         body: formData
       });
@@ -685,7 +685,7 @@ export default function Dashboard() {
       const formData = new FormData();
       formData.append("lc_id", lcId.toString());
       formData.append("status", "Released");
-      await fetch("http://localhost:8000/update-lc-status", {
+      await fetch("/api/update-lc-status", {
         method: "POST",
         body: formData
       });
@@ -729,7 +729,7 @@ export default function Dashboard() {
       const formData = new FormData();
       formData.append("lc_id", lcId.toString());
       formData.append("status", "Defaulted");
-      await fetch("http://localhost:8000/update-lc-status", {
+      await fetch("/api/update-lc-status", {
         method: "POST",
         body: formData
       });
@@ -2093,7 +2093,7 @@ export default function Dashboard() {
                               const formData = new FormData();
                               formData.append("token_id", inv.token_id.toString());
                               formData.append("status", "Repaid");
-                              await fetch("http://localhost:8000/update-invoice-status", {
+                              await fetch("/api/update-invoice-status", {
                                 method: "POST",
                                 body: formData
                               });
@@ -2137,7 +2137,7 @@ export default function Dashboard() {
                               const formData = new FormData();
                               formData.append("token_id", inv.token_id.toString());
                               formData.append("status", "Defaulted");
-                              await fetch("http://localhost:8000/update-invoice-status", {
+                              await fetch("/api/update-invoice-status", {
                                 method: "POST",
                                 body: formData
                               });
